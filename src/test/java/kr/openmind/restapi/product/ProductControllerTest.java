@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -54,7 +55,7 @@ public class ProductControllerTest {
     @Test
     public void createProduct() throws Exception {
         Product product = StableProduct.builder()
-            .id(2018)
+            .id(-1) // for ignore
             .build();
 
         when(productRepository.save(any(Product.class))).thenReturn(product);
@@ -63,7 +64,7 @@ public class ProductControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(product)))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("id").value(2018))
+            .andExpect(jsonPath("id").value(not(-1))) // for generated value
             .andExpect(jsonPath("saleStatus").hasJsonPath());
     }
 }
