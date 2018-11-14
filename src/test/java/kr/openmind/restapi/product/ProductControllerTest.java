@@ -1,11 +1,14 @@
 package kr.openmind.restapi.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.openmind.restapi.testsupport.RestDocsCustomConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.restdocs.AutoConfigureRestDocs;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -16,13 +19,22 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
 import static org.hamcrest.Matchers.not;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedRequestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedResponseFields;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
+@AutoConfigureRestDocs
+@Import(RestDocsCustomConfig.class)
 @ActiveProfiles("test")
 public class ProductControllerTest {
 
@@ -66,7 +78,29 @@ public class ProductControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isCreated())
+            .andExpect(header().exists("Location"))
             .andExpect(jsonPath("id").value(not(-1))) // for generated value
-            .andExpect(jsonPath("saleStatus").hasJsonPath());
+            .andExpect(jsonPath("saleStatus").hasJsonPath())
+            .andExpect(jsonPath("_links").hasJsonPath())
+            .andExpect(jsonPath("_links.self").hasJsonPath())
+            .andExpect(jsonPath("_links.product").hasJsonPath())
+            .andExpect(jsonPath("_links.update").hasJsonPath())
+            .andExpect(jsonPath("_links.profile").hasJsonPath())
+            .andDo(document("product-post",
+                            links(
+                                linkWithRel("self").description("link to self"),
+                                linkWithRel("product").description("link to product"),
+                                linkWithRel("update").description("link to update"),
+                                linkWithRel("profile").description("link to profile")
+                            ),
+                            relaxedRequestFields(
+                                fieldWithPath("name").description("name of the product"),
+                                fieldWithPath("description").description("description of the product")
+                            ),
+                            relaxedResponseFields(
+                                fieldWithPath("id").description("identifier of the product"),
+                                fieldWithPath("name").description("name of the product")
+                            )
+            ));
     }
 }
