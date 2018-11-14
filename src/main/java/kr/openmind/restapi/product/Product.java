@@ -1,7 +1,9 @@
 package kr.openmind.restapi.product;
 
 import kr.openmind.restapi.vendor.VendorRoleType;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 import javax.persistence.*;
 import javax.validation.constraints.Min;
@@ -12,9 +14,7 @@ import java.time.ZonedDateTime;
 @Entity
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@EqualsAndHashCode(of = "id")
 public class Product {
 
     @Id
@@ -39,11 +39,9 @@ public class Product {
     private Integer quantity;
 
     @Enumerated(EnumType.STRING)
-    @Builder.Default
     private VendorRoleType vendorRoleType = VendorRoleType.THIRD_PARTY;
 
     @Min(0)
-    @Builder.Default
     private Long shippingFee = 0L;
 
     public ProductSaleStatusType getSaleStatus() {
