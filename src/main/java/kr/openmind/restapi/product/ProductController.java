@@ -1,6 +1,8 @@
 package kr.openmind.restapi.product;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.hateoas.Link;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,7 +16,7 @@ import java.net.URI;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 
 @RestController
-@RequestMapping("/api/product")
+@RequestMapping(value = "/api/product", produces = MediaTypes.HAL_JSON_UTF8_VALUE)
 public class ProductController {
 
     private final ModelMapper modelMapper;
@@ -32,9 +34,18 @@ public class ProductController {
         }
 
         Product product = modelMapper.map(productRequestDto, Product.class);
-
         Product savedProduct = productRepository.save(product);
+
         URI location = linkTo(ProductController.class).slash(savedProduct.getId()).toUri();
-        return ResponseEntity.created(location).body(savedProduct);
+        ProductResource productResource = createProductCreateResource(savedProduct);
+        return ResponseEntity.created(location).body(productResource);
+    }
+
+    private ProductResource createProductCreateResource(Product product) {
+        ProductResource productResource = new ProductResource(product);
+        productResource.add(linkTo(ProductResource.class).withRel("product"));
+        productResource.add(linkTo(ProductResource.class).slash(product.getId()).withRel("update"));
+        productResource.add(new Link("/docs/index.html#resources-product-post", "profile"));
+        return productResource;
     }
 }
