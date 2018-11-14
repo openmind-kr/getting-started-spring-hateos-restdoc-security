@@ -6,8 +6,10 @@ import lombok.*;
 import javax.persistence.*;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
+@Entity
 @Getter
 @Setter
 @Builder
@@ -15,6 +17,8 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Product {
 
+    @Id
+    @GeneratedValue
     private Integer id;
 
     @NotNull
@@ -41,4 +45,18 @@ public class Product {
     @Min(0)
     @Builder.Default
     private Long shippingFee = 0L;
+
+    public ProductSaleStatusType getSaleStatus() {
+        if (quantity == 0) {
+            return ProductSaleStatusType.SOLD_OUT;
+        }
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.systemDefault());
+        if (now.isBefore(beginSaleDateTime)) {
+            return ProductSaleStatusType.READY;
+        }
+        if (now.isAfter(closeSaleDateTime)) {
+            return ProductSaleStatusType.STOP;
+        }
+        return ProductSaleStatusType.ACTIVE;
+    }
 }
