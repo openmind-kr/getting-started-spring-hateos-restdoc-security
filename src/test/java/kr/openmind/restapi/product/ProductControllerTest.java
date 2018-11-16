@@ -49,7 +49,8 @@ public class ProductControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$[0].rejectedValue").hasJsonPath());
+            .andExpect(jsonPath("$.content[0].rejectedValue").hasJsonPath())
+            .andExpect(jsonPath("_links").hasJsonPath());
     }
 
     @Test
