@@ -11,6 +11,7 @@
   * Web × [HATEOAS](https://spring.io/projects/spring-hateoas) × [REST Docs](https://spring.io/projects/spring-restdocs)
   * JPA × H2 × PostgreSQL × [Lombok](https://projectlombok.org/)
     * PostgreSQL: ```$ docker run -p 5432:5432 --name local-postgres -e POSTGRES_PASSWORD=openmind -d postgres```
+* feat. [AsciiDoc](http://asciidoc.org/) - [AsciiDoctor](https://asciidoctor.org/)
 
 # Rest API Requirement
 ## 'Product Catalog' REST API [HAL](https://en.wikipedia.org/wiki/Hypertext_Application_Language)

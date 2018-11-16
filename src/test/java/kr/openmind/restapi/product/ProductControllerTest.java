@@ -2,6 +2,7 @@ package kr.openmind.restapi.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.openmind.restapi.testsupport.RestDocsCustomConfig;
+import kr.openmind.restapi.vendor.VendorRoleType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,18 +18,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 
 import static org.hamcrest.Matchers.not;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
 import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedRequestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedResponseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -93,13 +91,29 @@ public class ProductControllerTest {
                                 linkWithRel("update").description("link to update"),
                                 linkWithRel("profile").description("link to profile")
                             ),
-                            relaxedRequestFields(
+                            requestFields(
                                 fieldWithPath("name").description("name of the product"),
-                                fieldWithPath("description").description("description of the product")
+                                fieldWithPath("description").description("description of the product"),
+                                fieldWithPath("beginSaleDateTime").type(ZonedDateTime.class).description("on sale date"),
+                                fieldWithPath("closeSaleDateTime").type(ZonedDateTime.class).description("the end date of sale"),
+                                fieldWithPath("salePrice").description("sale price"),
+                                fieldWithPath("quantity").description("available quantity"),
+                                fieldWithPath("vendorRoleType")
+                                    .description("vendor role type. must be one of " + Arrays.toString(VendorRoleType.values())),
+                                fieldWithPath("shippingFee").description("shipping fee (optional)")
                             ),
                             relaxedResponseFields(
                                 fieldWithPath("id").description("identifier of the product"),
-                                fieldWithPath("name").description("name of the product")
+                                fieldWithPath("name").description("name of the product"),
+                                fieldWithPath("description").description("description of the product"),
+                                fieldWithPath("beginSaleDateTime").type(ZonedDateTime.class).description("on sale date"),
+                                fieldWithPath("closeSaleDateTime").type(ZonedDateTime.class).description("the end date of sale"),
+                                fieldWithPath("salePrice").description("sale price"),
+                                fieldWithPath("quantity").description("available quantity"),
+                                fieldWithPath("vendorRoleType").description("vendor role type"),
+                                fieldWithPath("shippingFee").description("shipping fee"),
+                                fieldWithPath("saleStatus")
+                                    .description("sale status. must be one of " + Arrays.toString(ProductSaleStatusType.values()))
                             )
             ));
     }
