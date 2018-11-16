@@ -1,5 +1,6 @@
 package kr.openmind.restapi.product;
 
+import kr.openmind.restapi.common.ErrorResource;
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
@@ -30,7 +31,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity create(@RequestBody @Valid ProductRequestDto productRequestDto, Errors errors) {
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return ResponseEntity.badRequest().body(new ErrorResource(errors));
         }
 
         Product product = modelMapper.map(productRequestDto, Product.class);
