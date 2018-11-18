@@ -15,9 +15,15 @@ public class StableProduct {
 
     public static class StableProductBuilder {
 
+        private String name;
         private Integer quantity;
         private ZonedDateTime beginSaleDateTime;
         private ZonedDateTime closeSaleDateTime;
+
+        public StableProductBuilder name(String name) {
+            this.name = name;
+            return this;
+        }
 
         public StableProductBuilder quantity(Integer quantity) {
             this.quantity = quantity;
@@ -39,7 +45,7 @@ public class StableProduct {
             ZonedDateTime maximumDateTime = ZonedDateTime.of(LocalDateTime.of(9999, 12, 31, 23, 59, 59), ZoneId.systemDefault());
 
             Product product = new Product();
-            product.setName("anyName");
+            product.setName(Optional.ofNullable(name).orElse("anyName"));
             product.setDescription("anyDescription");
             product.setBeginSaleDateTime(Optional.ofNullable(beginSaleDateTime).orElse(minimumDateTime));
             product.setCloseSaleDateTime(Optional.ofNullable(closeSaleDateTime).orElse(maximumDateTime));
