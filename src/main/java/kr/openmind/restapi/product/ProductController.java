@@ -1,6 +1,6 @@
 package kr.openmind.restapi.product;
 
-import kr.openmind.restapi.account.AccountAdapter;
+import kr.openmind.restapi.account.Account;
 import kr.openmind.restapi.common.ErrorResource;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -40,11 +40,11 @@ public class ProductController {
     @GetMapping
     public ResponseEntity list(Pageable pageable,
                                PagedResourcesAssembler<Product> assembler,
-                               @AuthenticationPrincipal AccountAdapter user) {
+                               @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account user) {
         if (user == null) {
             log.debug("allowed user doesn't exist");
         } else {
-            log.debug("allowed user. id: {}, email: {}, role: {}", user.getAccount().getId(), user.getUsername(), user.getAuthorities());
+            log.debug("allowed user. id: {}, email: {}, role: {}", user.getId(), user.getEmail(), user.getRoles());
         }
 
         Page<Product> products = productRepository.findAll(pageable);
@@ -58,7 +58,8 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity get(@PathVariable Integer id, @AuthenticationPrincipal AccountAdapter user) {
+    public ResponseEntity get(@PathVariable Integer id,
+                              @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account user) {
         Optional<Product> optionalProduct = productRepository.findById(id);
         if (!optionalProduct.isPresent()) {
             return ResponseEntity.notFound().build();
@@ -75,7 +76,7 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity create(@RequestBody @Valid ProductRequestDto productRequestDto, Errors errors,
-                                 @AuthenticationPrincipal AccountAdapter user) {
+                                 @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account user) {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(new ErrorResource(errors));
         }
@@ -94,7 +95,7 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity update(@PathVariable Integer id,
                                  @RequestBody @Valid ProductRequestDto productRequestDto, Errors errors,
-                                 @AuthenticationPrincipal AccountAdapter user) {
+                                 @AuthenticationPrincipal(expression = "#this == 'anonymousUser' ? null : account") Account user) {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(new ErrorResource(errors));
         }
