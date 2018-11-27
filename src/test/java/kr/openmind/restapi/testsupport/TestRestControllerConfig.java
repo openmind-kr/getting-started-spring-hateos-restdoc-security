@@ -13,7 +13,7 @@ import java.lang.annotation.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @AutoConfigureRestDocs
-@Import(RestDocsCustomConfig.class)
+@Import({ RestDocsCustomConfig.class, SecurityTestSupport.class })
 @ActiveProfiles("test")
 public @interface TestRestControllerConfig {
 }
