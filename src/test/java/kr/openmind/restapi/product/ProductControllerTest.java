@@ -1,6 +1,10 @@
 package kr.openmind.restapi.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.openmind.restapi.account.Account;
+import kr.openmind.restapi.account.AccountRole;
+import kr.openmind.restapi.account.AccountService;
+import kr.openmind.restapi.common.ApplicationSecurityProperties;
 import kr.openmind.restapi.testsupport.StableProduct;
 import kr.openmind.restapi.testsupport.TestRestControllerConfig;
 import kr.openmind.restapi.vendor.VendorRoleType;
@@ -8,19 +12,26 @@ import org.assertj.core.internal.bytebuddy.utility.RandomString;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.internal.util.collections.Sets;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.not;
@@ -40,7 +51,11 @@ public class ProductControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
+    private AccountService accountService;
+    @Autowired
     private ProductRepository productRepository;
+    @Autowired
+    private ApplicationSecurityProperties applicationSecurityProperties;
     @Autowired
     private ObjectMapper objectMapper;
     @Autowired
@@ -49,6 +64,7 @@ public class ProductControllerTest {
     @Test
     public void createProductEmptyParameter() throws Exception {
         mockMvc.perform(post("/api/product")
+                            .header(HttpHeaders.AUTHORIZATION, bearer(getAccessToken()))
                             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isBadRequest());
     }
@@ -60,6 +76,7 @@ public class ProductControllerTest {
             .build();
 
         mockMvc.perform(post("/api/product")
+                            .header(HttpHeaders.AUTHORIZATION, bearer(getAccessToken()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isBadRequest())
@@ -79,6 +96,7 @@ public class ProductControllerTest {
             .build();
 
         mockMvc.perform(post("/api/product")
+                            .header(HttpHeaders.AUTHORIZATION, bearer(getAccessToken()))
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isCreated())
@@ -186,6 +204,7 @@ public class ProductControllerTest {
         ProductRequestDto productRequestDto = modelMapper.map(product, ProductRequestDto.class);
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/product/{id}", anySavedProduct.getId())
+                            .header(HttpHeaders.AUTHORIZATION, bearer(getAccessToken()))
                             .contentType(MediaType.APPLICATION_JSON_UTF8)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isOk())
@@ -241,5 +260,47 @@ public class ProductControllerTest {
             .build();
 
         return productRepository.save(product);
+    }
+
+    private String bearer(String accessToken) {
+        return "Bearer ".concat(accessToken);
+    }
+
+    private String getAccessToken() throws Exception {
+        String email = "user" + RandomString.make() + "@email.com";
+        String password = "password"; // any
+
+        Account account = new Account();
+        account.setEmail(email);
+        account.setPassword(password); // any
+        account.setRoles(Sets.newSet(AccountRole.USER));
+
+        Account savedAccount = accountService.createAccount(account);
+        return getAccessToken(savedAccount, password);
+    }
+
+    private String getAccessToken(Account savedAccount, String password) throws Exception {
+        MultiValueMap<String, String> params = new LinkedMultiValueMap();
+        params.add("grant_type", "password");
+        params.add("username", savedAccount.getEmail());
+        params.add("password", password);
+
+        String defaultClientId = applicationSecurityProperties.getDefaultClientId();
+        String defaultClientSecret = applicationSecurityProperties.getDefaultClientSecret();
+        ResultActions resultActions = mockMvc
+            .perform(post("/oauth/token")
+                         .params(params)
+                         .with(SecurityMockMvcRequestPostProcessors.httpBasic(defaultClientId, defaultClientSecret))
+                         .accept(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
+            .andExpect(jsonPath("access_token").isNotEmpty())
+            .andExpect(jsonPath("token_type").value("bearer"))
+            .andExpect(jsonPath("refresh_token").isNotEmpty())
+            .andExpect(jsonPath("expires_in").isNumber())
+            .andExpect(jsonPath("scope").value("read write trust"));
+
+        String contentAsString = resultActions.andReturn().getResponse().getContentAsString();
+        return objectMapper.readValue(contentAsString, Map.class).get("access_token").toString();
     }
 }
