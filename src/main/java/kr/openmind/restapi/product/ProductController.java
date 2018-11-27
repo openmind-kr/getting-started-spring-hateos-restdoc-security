@@ -9,6 +9,8 @@ import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedResources;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,19 +36,19 @@ public class ProductController {
     private static final ProductController CONTROLLER_LINK = methodOn(ProductController.class);
 
     @GetMapping
-    public ResponseEntity list(Pageable pageable, PagedResourcesAssembler<Product> assembler) {
+    public ResponseEntity list(Pageable pageable, PagedResourcesAssembler<Product> assembler, @AuthenticationPrincipal User user) {
         Page<Product> products = productRepository.findAll(pageable);
 
         PagedResources<ProductResource> productResources = assembler.toResource(products, entity -> new ProductResource(entity));
-        productResources.add(linkTo(CONTROLLER_LINK.get(null)).withRel("product"));
-        productResources.add(linkTo(CONTROLLER_LINK.create(null, null)).withRel("product-create"));
+        productResources.add(linkTo(CONTROLLER_LINK.get(null, user)).withRel("product"));
+        productResources.add(linkTo(CONTROLLER_LINK.create(null, null, user)).withRel("product-create"));
         productResources.add(createProfileLink("resources-product-get-list"));
 
         return ResponseEntity.ok(productResources);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity get(@PathVariable Integer id) {
+    public ResponseEntity get(@PathVariable Integer id, @AuthenticationPrincipal User user) {
         Optional<Product> optionalProduct = productRepository.findById(id);
         if (!optionalProduct.isPresent()) {
             return ResponseEntity.notFound().build();
@@ -55,14 +57,15 @@ public class ProductController {
         Product product = optionalProduct.get();
 
         ProductResource productResource = new ProductResource(product, createProfileLink("resources-product-get"));
-        productResource.add(linkTo(CONTROLLER_LINK.list(null, null)).withRel("products"));
-        productResource.add(linkTo(CONTROLLER_LINK.update(product.getId(), null, null)).withRel("update"));
+        productResource.add(linkTo(CONTROLLER_LINK.list(null, null, user)).withRel("products"));
+        productResource.add(linkTo(CONTROLLER_LINK.update(product.getId(), null, null, user)).withRel("update"));
 
         return ResponseEntity.ok(productResource);
     }
 
     @PostMapping
-    public ResponseEntity create(@RequestBody @Valid ProductRequestDto productRequestDto, Errors errors) {
+    public ResponseEntity create(@RequestBody @Valid ProductRequestDto productRequestDto, Errors errors,
+                                 @AuthenticationPrincipal User user) {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(new ErrorResource(errors));
         }
@@ -72,14 +75,16 @@ public class ProductController {
 
         URI location = linkTo(ProductController.class).slash(savedProduct.getId()).toUri();
         ProductResource productResource = new ProductResource(savedProduct, createProfileLink("resources-product-post"));
-        productResource.add(linkTo(CONTROLLER_LINK.get(savedProduct.getId())).withRel("product"));
-        productResource.add(linkTo(CONTROLLER_LINK.update(savedProduct.getId(), null, null)).withRel("update"));
+        productResource.add(linkTo(CONTROLLER_LINK.get(savedProduct.getId(), user)).withRel("product"));
+        productResource.add(linkTo(CONTROLLER_LINK.update(savedProduct.getId(), null, null, user)).withRel("update"));
 
         return ResponseEntity.created(location).body(productResource);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity update(@PathVariable Integer id, @RequestBody @Valid ProductRequestDto productRequestDto, Errors errors) {
+    public ResponseEntity update(@PathVariable Integer id,
+                                 @RequestBody @Valid ProductRequestDto productRequestDto, Errors errors,
+                                 @AuthenticationPrincipal User user) {
         if (errors.hasErrors()) {
             return ResponseEntity.badRequest().body(new ErrorResource(errors));
         }
@@ -93,8 +98,8 @@ public class ProductController {
         modelMapper.map(productRequestDto, product);
 
         ProductResource productResource = new ProductResource(product, createProfileLink("resources-product-put"));
-        productResource.add(linkTo(CONTROLLER_LINK.list(null, null)).withRel("products"));
-        productResource.add(linkTo(CONTROLLER_LINK.get(product.getId())).withRel("product"));
+        productResource.add(linkTo(CONTROLLER_LINK.list(null, null, user)).withRel("products"));
+        productResource.add(linkTo(CONTROLLER_LINK.get(product.getId(), user)).withRel("product"));
 
         return ResponseEntity.ok(productResource);
     }
