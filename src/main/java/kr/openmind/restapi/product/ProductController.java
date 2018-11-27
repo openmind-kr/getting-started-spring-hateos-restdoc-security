@@ -1,6 +1,7 @@
 package kr.openmind.restapi.product;
 
 import kr.openmind.restapi.common.ErrorResource;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,7 @@ import java.util.Optional;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+@Slf4j
 @RestController
 @RequestMapping(value = "/api/product", produces = MediaTypes.HAL_JSON_UTF8_VALUE)
 public class ProductController {
@@ -37,6 +39,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity list(Pageable pageable, PagedResourcesAssembler<Product> assembler, @AuthenticationPrincipal User user) {
+        if (user == null) {
+            log.debug("allowed user doesn't exist");
+        } else {
+            log.debug("allowed user. email: {}, role: {}", user.getUsername(), user.getAuthorities());
+        }
+
         Page<Product> products = productRepository.findAll(pageable);
 
         PagedResources<ProductResource> productResources = assembler.toResource(products, entity -> new ProductResource(entity));
