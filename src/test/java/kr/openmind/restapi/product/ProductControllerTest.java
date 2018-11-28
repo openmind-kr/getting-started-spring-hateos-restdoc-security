@@ -282,7 +282,7 @@ public class ProductControllerTest {
             fieldWithPath("shippingFee").description("shipping fee").optional(),
             fieldWithPath("saleStatus")
                 .description("sale status. must be one of " + Arrays.toString(ProductSaleStatusType.values())),
-            subsectionWithPath("account").description("manager account")
+            fieldWithPath("account.id").description("manager account id")
         );
     }
 
