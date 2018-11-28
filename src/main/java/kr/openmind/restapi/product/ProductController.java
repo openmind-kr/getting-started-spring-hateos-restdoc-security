@@ -11,6 +11,7 @@ import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.hateoas.PagedResources;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.*;
@@ -49,8 +50,9 @@ public class ProductController {
 
         PagedResources<ProductResource> productResources = assembler.toResource(products, entity -> new ProductResource(entity));
         productResources.add(linkTo(CONTROLLER_LINK.get(null, account)).withRel("product"));
-        productResources.add(linkTo(CONTROLLER_LINK.create(null, null, account)).withRel("product-create"));
         productResources.add(createProfileLink("resources-product-get-list"));
+        Optional.ofNullable(account)
+            .ifPresent(exists -> productResources.add(linkTo(CONTROLLER_LINK.create(null, null, account)).withRel("product-create")));
 
         return ResponseEntity.ok(productResources);
     }
@@ -66,7 +68,9 @@ public class ProductController {
 
         ProductResource productResource = new ProductResource(product, createProfileLink("resources-product-get"));
         productResource.add(linkTo(CONTROLLER_LINK.list(null, null, account)).withRel("products"));
-        productResource.add(linkTo(CONTROLLER_LINK.update(product.getId(), null, null, account)).withRel("update"));
+        if (product.getAccount().equals(account)) {
+            productResource.add(linkTo(CONTROLLER_LINK.update(product.getId(), null, null, account)).withRel("update"));
+        }
 
         return ResponseEntity.ok(productResource);
     }
@@ -104,6 +108,10 @@ public class ProductController {
         }
 
         Product product = optionalProduct.get();
+        if (!product.getAccount().equals(account)) {
+            return new ResponseEntity(HttpStatus.FORBIDDEN);
+        }
+
         modelMapper.map(productRequestDto, product);
 
         ProductResource productResource = new ProductResource(product, createProfileLink("resources-product-put"));
