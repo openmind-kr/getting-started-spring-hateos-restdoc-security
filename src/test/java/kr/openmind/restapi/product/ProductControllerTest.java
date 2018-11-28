@@ -1,12 +1,14 @@
 package kr.openmind.restapi.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import kr.openmind.restapi.account.Account;
 import kr.openmind.restapi.testsupport.SecurityTestSupport;
 import kr.openmind.restapi.testsupport.StableProduct;
 import kr.openmind.restapi.testsupport.TestRestControllerConfig;
 import kr.openmind.restapi.vendor.VendorRoleType;
 import org.assertj.core.internal.bytebuddy.utility.RandomString;
 import org.assertj.core.util.Lists;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.modelmapper.ModelMapper;
@@ -49,6 +51,15 @@ public class ProductControllerTest {
     private ObjectMapper objectMapper;
     @Autowired
     private ModelMapper modelMapper;
+
+    private static final String EMAIL = "register@email.com";
+    private static final String PASSWORD = "reg!ster_passw0rd";
+
+    @After
+    public void tearDown() {
+        productRepository.deleteAll();
+        securityTestSupport.deleteAllAccount();
+    }
 
     @Test
     public void createProductEmptyParameter() throws Exception {
@@ -123,12 +134,11 @@ public class ProductControllerTest {
 
     @Test
     public void getProduct() throws Exception {
-        Product anySavedProduct = saveProduct(Integer.MIN_VALUE); // any index
+        Product anySavedProduct = saveProduct(Integer.MIN_VALUE, saveAccount()); // any index
 
-        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/product/{id}", anySavedProduct.getId()))
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/product/{id}", anySavedProduct.getId())
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(EMAIL, PASSWORD)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("_links.self").hasJsonPath())
-            .andExpect(jsonPath("_links.update").hasJsonPath())
             .andDo(document("product-get",
                             links(
                                 linkWithRel("self").description("link to this product"),
@@ -141,17 +151,27 @@ public class ProductControllerTest {
                             ),
                             responseFields(productResponseFields("product-get_links"))
             ));
+
+        // anonymous
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/product/{id}", anySavedProduct.getId()))
+            .andExpect(jsonPath("_links.update").doesNotExist());
+
+        // matching account
+        mockMvc.perform(RestDocumentationRequestBuilders.get("/api/product/{id}", anySavedProduct.getId())
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(EMAIL, PASSWORD)))
+            .andExpect(jsonPath("_links.update").hasJsonPath());
     }
 
     @Test
     public void getProducts() throws Exception {
-        IntStream.range(0, 30).forEach(this::saveProduct);
+        Account anyAccount = saveAccount();
+        IntStream.range(0, 30).forEach(index -> saveProduct(index, anyAccount));
 
         mockMvc.perform(get("/api/product")
                             .param("size", "10")
-                            .param("page", "1"))
+                            .param("page", "1")
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(EMAIL, PASSWORD)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("_links").hasJsonPath())
             .andDo(document("product-get-list",
                             links(
                                 linkWithRel("self").description("link to product list"),
@@ -177,11 +197,26 @@ public class ProductControllerTest {
                                 fieldWithPath("page.totalElements").description("The total number of results.")
                             )
             ));
+
+        // anonymous
+        mockMvc.perform(get("/api/product")
+                            .param("size", "10")
+                            .param("page", "1"))
+            .andExpect(jsonPath("_links.product-create").doesNotExist());
+
+        // matching account
+        mockMvc.perform(get("/api/product")
+                            .param("size", "10")
+                            .param("page", "1")
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(EMAIL, PASSWORD)))
+            .andExpect(jsonPath("_links.product-create").hasJsonPath());
     }
 
     @Test
     public void updateProduct() throws Exception {
-        Product anySavedProduct = saveProduct(Integer.MAX_VALUE); // any index
+        Account anAccount = securityTestSupport.saveAccount("anAcount@email.com", PASSWORD);
+        Account otherAccount = securityTestSupport.saveAccount("otherAccount@email.com", PASSWORD);
+        Product anySavedProduct = saveProduct(Integer.MAX_VALUE, anAccount); // any index
 
         String modifiedName = RandomString.make(10);
         int modifiedQuantity = anySavedProduct.getQuantity() + 100;
@@ -193,7 +228,7 @@ public class ProductControllerTest {
         ProductRequestDto productRequestDto = modelMapper.map(product, ProductRequestDto.class);
 
         mockMvc.perform(RestDocumentationRequestBuilders.put("/api/product/{id}", anySavedProduct.getId())
-                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken())
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(anAccount.getEmail(), PASSWORD))
                             .contentType(MediaType.APPLICATION_JSON_UTF8)
                             .content(objectMapper.writeValueAsString(productRequestDto)))
             .andExpect(status().isOk())
@@ -210,6 +245,13 @@ public class ProductControllerTest {
                             requestFields(productRequestFields()),
                             responseFields(productResponseFields("product-put_links"))
             ));
+
+        // not matching account
+        mockMvc.perform(RestDocumentationRequestBuilders.put("/api/product/{id}", anySavedProduct.getId())
+                            .header(HttpHeaders.AUTHORIZATION, securityTestSupport.getBearerAccessToken(otherAccount.getEmail(), PASSWORD))
+                            .contentType(MediaType.APPLICATION_JSON_UTF8)
+                            .content(objectMapper.writeValueAsString(productRequestDto)))
+            .andExpect(status().isForbidden());
     }
 
     private List<FieldDescriptor> productRequestFields() {
@@ -244,10 +286,15 @@ public class ProductControllerTest {
         );
     }
 
-    private Product saveProduct(int index) {
+    private Account saveAccount() {
+        return securityTestSupport.saveAccount(EMAIL, PASSWORD);
+    }
+
+    private Product saveProduct(int index, Account account) {
         Product product = StableProduct.builder()
             .name("indexAnyName" + index)
             .build();
+        product.setAccount(account);
 
         return productRepository.save(product);
     }

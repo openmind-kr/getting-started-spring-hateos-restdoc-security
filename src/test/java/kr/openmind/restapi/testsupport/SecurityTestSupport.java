@@ -40,27 +40,35 @@ public class SecurityTestSupport {
         this.applicationSecurityProperties = applicationSecurityProperties;
     }
 
-    public String getBearerAccessToken() throws Exception {
-        return "Bearer ".concat(getAccessToken());
-    }
-
-    private String getAccessToken() throws Exception {
-        String email = "user" + RandomString.make() + "@email.com";
-        String password = "password"; // any
-
+    public Account saveAccount(String email, String password) {
         Account account = new Account();
         account.setEmail(email);
         account.setPassword(password); // any
         account.setRoles(Sets.newSet(AccountRole.USER));
 
-        Account savedAccount = accountService.createAccount(account);
-        return getAccessToken(savedAccount, password);
+        return accountService.createAccount(account);
     }
 
-    private String getAccessToken(Account savedAccount, String password) throws Exception {
+    public void deleteAllAccount() {
+        accountService.deleteAll();
+    }
+
+    public String getBearerAccessToken() throws Exception {
+        String email = "user" + RandomString.make() + "@email.com";
+        String password = "password"; // any
+
+        saveAccount(email, password);
+        return getBearerAccessToken(email, password);
+    }
+
+    public String getBearerAccessToken(String email, String password) throws Exception {
+        return "Bearer ".concat(getAccessToken(email, password));
+    }
+
+    private String getAccessToken(String email, String password) throws Exception {
         MultiValueMap<String, String> params = new LinkedMultiValueMap();
         params.add("grant_type", "password");
-        params.add("username", savedAccount.getEmail());
+        params.add("username", email);
         params.add("password", password);
 
         String defaultClientId = applicationSecurityProperties.getDefaultClientId();
