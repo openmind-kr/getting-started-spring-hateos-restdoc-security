@@ -239,7 +239,8 @@ public class ProductControllerTest {
             fieldWithPath("vendorRoleType").description("vendor role type"),
             fieldWithPath("shippingFee").description("shipping fee").optional(),
             fieldWithPath("saleStatus")
-                .description("sale status. must be one of " + Arrays.toString(ProductSaleStatusType.values()))
+                .description("sale status. must be one of " + Arrays.toString(ProductSaleStatusType.values())),
+            subsectionWithPath("account").description("manager account")
         );
     }
 

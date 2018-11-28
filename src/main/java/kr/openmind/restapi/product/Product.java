@@ -1,5 +1,6 @@
 package kr.openmind.restapi.product;
 
+import kr.openmind.restapi.account.Account;
 import kr.openmind.restapi.vendor.VendorRoleType;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -43,6 +44,9 @@ public class Product {
 
     @Min(0)
     private Long shippingFee = 0L;
+
+    @ManyToOne
+    private Account account;
 
     public ProductSaleStatusType getSaleStatus() {
         if (quantity == 0) {

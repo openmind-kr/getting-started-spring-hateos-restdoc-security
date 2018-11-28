@@ -79,6 +79,7 @@ public class ProductController {
         }
 
         Product product = modelMapper.map(productRequestDto, Product.class);
+        product.setAccount(account);
         Product savedProduct = productRepository.save(product);
 
         URI location = linkTo(ProductController.class).slash(savedProduct.getId()).toUri();
