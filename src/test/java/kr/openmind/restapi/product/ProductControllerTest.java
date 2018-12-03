@@ -2,6 +2,7 @@ package kr.openmind.restapi.product;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import kr.openmind.restapi.account.Account;
+import kr.openmind.restapi.testsupport.ConstrainedFields;
 import kr.openmind.restapi.testsupport.SecurityTestSupport;
 import kr.openmind.restapi.testsupport.StableProduct;
 import kr.openmind.restapi.testsupport.TestRestControllerConfig;
@@ -255,16 +256,17 @@ public class ProductControllerTest {
     }
 
     private List<FieldDescriptor> productRequestFields() {
+        ConstrainedFields fields = new ConstrainedFields(ProductRequestDto.class);
         return Lists.newArrayList(
-            fieldWithPath("name").description("name of the product"),
-            fieldWithPath("description").description("description of the product"),
-            fieldWithPath("beginSaleDateTime").type(ZonedDateTime.class).description("on sale date"),
-            fieldWithPath("closeSaleDateTime").type(ZonedDateTime.class).description("the end date of sale"),
-            fieldWithPath("salePrice").description("sale price"),
-            fieldWithPath("quantity").description("available quantity"),
-            fieldWithPath("vendorRoleType")
+            fields.withPath("name").description("name of the product"),
+            fields.withPath("description").description("description of the product"),
+            fields.withPath("beginSaleDateTime").type(ZonedDateTime.class).description("on sale date"),
+            fields.withPath("closeSaleDateTime").type(ZonedDateTime.class).description("the end date of sale"),
+            fields.withPath("salePrice").description("sale price"),
+            fields.withPath("quantity").description("available quantity"),
+            fields.withPath("vendorRoleType")
                 .description("vendor role type. must be one of " + Arrays.toString(VendorRoleType.values())),
-            fieldWithPath("shippingFee").description("shipping fee (optional)").optional()
+            fields.withPath("shippingFee").description("shipping fee").optional()
         );
     }
 
